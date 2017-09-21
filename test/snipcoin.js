@@ -18,7 +18,7 @@ contract('SnipCoin', function(accounts) {
 	it ("Check initial supply", function()
 	{
 		return crowdsale.totalSupply().then(function(totalSupply) {
-      	assert.equal(totalSupply.valueOf(), 10000000000, "didn't get right amount of initial supply");
+      	assert.equal(totalSupply.valueOf(), 10000000000 * 1000000000000000000, "didn't get right amount of initial supply");
 	});
 	});
 	it ("Check initial balance", function()
@@ -27,15 +27,15 @@ contract('SnipCoin', function(accounts) {
       	assert.equal(balance.valueOf(), 10000000000 * 1000000000000000000, "didn't get right initial balance");
 	});
 	});
-	it ("Check symbol is SNP", function()
+	it ("Check symbol is SNIP", function()
 	{
-		return crowdsale.tokenSymbol().then(function(symbol) {
-      	assert.equal(symbol.valueOf(), "SNP", "didn't get right symbol");
+		return crowdsale.symbol().then(function(symbol) {
+      	assert.equal(symbol.valueOf(), "SNIP", "didn't get right symbol");
 	});
 	});
 	it ("Check token name is SnipCoin", function()
 	{
-      	return crowdsale.tokenName().then(function(name) {
+      	return crowdsale.name().then(function(name) {
       	assert.equal(name.valueOf(), "SnipCoin", "didn't get right token name");
 	});
 	});
@@ -65,7 +65,7 @@ contract('SnipCoin', function(accounts) {
 	      return snip.getBalance.call(account_two);
 	    }).then(function(balance) {
 	      account_two_starting_balance = balance.toNumber();
-	      return snip.sendCoin(account_two, amount, {from: account_one});
+	      return snip.transfer(account_two, amount, {from: account_one});
 	    }).then(function() {
 	      return snip.getBalance.call(account_one);
 	    }).then(function(balance) {

@@ -11,12 +11,4 @@ contract TestSnipCoin {
     uint expected = 0;
     Assert.equal(actual,expected, "Zero should be zero");
   }
-
-  function testInitialSupplyUsingDeployedContract() {
-    SnipCoin snip = SnipCoin(DeployedAddresses.SnipCoin());
-
-    uint expectedSupply = 10000000000;
-
-    Assert.equal(snip.totalSupply(), expectedSupply, "Initial supply should be 10000000000 SnipCoin");
-  }
 }
