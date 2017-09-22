@@ -117,7 +117,27 @@ contract('SnipCoin', function(accounts) {
 		     	assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not with correct eth value after transfer")
 		     	return snip.totalUsdReceived();
 		     }).then(function(totalUsdReceived) {
-		     	assert.equal(totalUsdReceived.valueOf(), 4000510, "Not with correct usd value after transfer")
+		     	assert.equal(totalUsdReceived.valueOf(), 4000570, "Not with correct usd value after transfer")
 	    });
+		});
+
+		it ("Transfer less than $50 worth of Ether, see that it doesn't work", function()
+		{
+
+		});
+
+		it ("Transfer more than $8000000 worth of Ether, see that it doesn't work", function()
+		{
+
+		});
+
+		it ("Test effective max cap, see that ends the sale", function()
+		{
+
+		});
+
+		it ("Test update of snp/eth ratio", function()
+		{
+
 		});
 });
