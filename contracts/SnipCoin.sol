@@ -101,14 +101,15 @@ contract SnipCoin is StandardToken {
     mapping (address => bool) cappedBuyerList;   // The list of buyers allowed to participate in the sale
 
     uint public snipCoinPerEther = 300000; // This is the ratio of SnipCoin to Ether, could be updated by the owner
+    //bool public isSaleOpen = false; // This opens and closes upon external command
+    bool public isSaleOpen = true; // This opens and closes upon external command
+    uint public ethToUsdExchangeRate = 285; // Number of USD in one Eth
     address private contractOwner;
     address private accountWithUpdatePermissions;
 
     // Multiplier for the decimals
     uint private constant DECIMALS_MULTIPLIER = 10**uint(decimals);    
     uint private constant WEI_IN_ETHER = 1000 * 1000 * 1000 * 1000 * 1000 * 1000; // Number of wei in 1 eth
-    uint private constant ETH_TO_USD_EXCHANGE_RATE = 285;
-    uint private constant WEI_TO_USD_EXCHANGE_RATE = WEI_IN_ETHER / ETH_TO_USD_EXCHANGE_RATE; // Eth to USD exchange rate. Verify this figure before the sale starts. 
     uint public constant SALE_CAP_IN_USD = 8000000;  // The total sale cap in USD
     uint public constant MINIMUM_PURCHASE_IN_USD = 50;  // It is impossible to purchase tokens for more than $50 in the sale.
     uint public constant USD_PURCHASE_AMOUNT_REQUIRING_ID = 4500;  // Above this purchase amount an ID is required.
@@ -133,10 +134,26 @@ contract SnipCoin is StandardToken {
         return balances[addr];
     }
 
+    function setEthToUsdExchangeRate(uint newEthToUsdExchangeRate)
+    {
+        ethToUsdExchangeRate = newEthToUsdExchangeRate;
+    }
+
+    function getWeiToUsdExchangeRate() returns(uint)
+    {
+        return WEI_IN_ETHER / ethToUsdExchangeRate;
+    }
+
     function updateSnipCoinPerEtherRatio(uint newRatio)
     {
         require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions));
         snipCoinPerEther = newRatio;
+    }
+
+    function openOrCloseSale(bool saleCondition)
+    {
+        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions));
+        isSaleOpen = saleCondition;
     }
 
     function addAddressToCappedAddresses(address addr)
@@ -158,43 +175,45 @@ contract SnipCoin is StandardToken {
         initializeUsdReceived();
 
         contractOwner = msg.sender;
-        totalSupply = 10000000000 * DECIMALS_MULTIPLIER;                                      // In total, 10 billion tokens
+        totalSupply = 10000000000 * DECIMALS_MULTIPLIER;      // In total, 10 billion tokens
         balances[msg.sender] = totalSupply;        // Initially give owner all of the tokens 
     }
 
     function verifySaleNotOver()
     {
+        require(isSaleOpen);
         require(totalUsdReceived < SALE_CAP_IN_USD); // Make sure that sale isn't over
     }
 
-    function verifyBuyerCanMakePurchase()
+    function verifyBuyerCanMakePurchase() payable
     {
-        uint purchaseValueInUSD = uint(msg.value / WEI_TO_USD_EXCHANGE_RATE); // The USD worth of tokens sold
+        uint purchaseValueInUSD = uint(msg.value / getWeiToUsdExchangeRate()); // The USD worth of tokens sold
 
         require(purchaseValueInUSD > MINIMUM_PURCHASE_IN_USD); // Minimum transfer is of $50
 
         uint EFFECTIVE_MAX_CAP = SALE_CAP_IN_USD + 1000;  // This allows for the end of the sale by passing $8M and reaching the cap
         require(EFFECTIVE_MAX_CAP - totalUsdReceived > purchaseValueInUSD); // Make sure that there is enough usd left to buy.
         
-        if (purchaseValueInUSD >= USD_PURCHASE_AMOUNT_REQUIRING_ID) // Check if buyer is on capped white list
+        if (purchaseValueInUSD >= USD_PURCHASE_AMOUNT_REQUIRING_ID) // Check if buyer is on uncapped white list
         {
-            require(uncappedBuyerList[msg.sender] == true);
+            require(uncappedBuyerList[msg.sender]);
         }
-        if (purchaseValueInUSD < USD_PURCHASE_AMOUNT_REQUIRING_ID) // Check if buyer is on uncapped white list
+        if (purchaseValueInUSD < USD_PURCHASE_AMOUNT_REQUIRING_ID) // Check if buyer is on capped white list
         {
-            require(cappedBuyerList[msg.sender] == true);
+            require(cappedBuyerList[msg.sender] || uncappedBuyerList[msg.sender]);
         }
     }
 
+    // TODO:: In ether retrieval test make sure you get the right number of tokens.
+
     function () payable
     {
-        // In ether retrieval test make sure you get the right number of tokens.
         verifySaleNotOver();
         verifyBuyerCanMakePurchase();
 
-        saleWalletAddress.transfer(msg.value);
+        saleWalletAddress.send(msg.value);
         transferFrom(contractOwner, msg.sender, uint(snipCoinPerEther * msg.value / WEI_IN_ETHER));
         totalEthReceivedInWei = totalEthReceivedInWei + msg.value;
-        totalUsdReceived = totalUsdReceived + msg.value / WEI_TO_USD_EXCHANGE_RATE;
+        totalUsdReceived = totalUsdReceived + msg.value / getWeiToUsdExchangeRate();
     }
 }

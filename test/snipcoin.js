@@ -9,7 +9,8 @@ contract('SnipCoin', function(accounts) {
 		assert.equal(0,0);
 	});
 
-	it("initialize contract", function() {
+	it("initialize contract", function()
+	{
       return SnipCoin.new().then(function(_crowdsale) {
       crowdsale = _crowdsale
     });
@@ -48,6 +49,7 @@ contract('SnipCoin', function(accounts) {
 	it ("Check send tokens correctly to other account", function()
 	{
 		var snip = crowdsale;
+		snip.setEthToUsdExchangeRate(285);
 
 	    // Get initial balances of first and second account.
 	    var account_one = accounts[0];
@@ -95,8 +97,11 @@ contract('SnipCoin', function(accounts) {
 
 		it ("Check ether receival with contract, transfer to third account", function()
 		{
+			// Check that 
 			var account_two = accounts[1];
 			var snip = crowdsale;
+			snip.setEthToUsdExchangeRate(285);
+			snip.addAddressToCappedAddresses(account_two);
 
 	      	return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
 		      assert.equal(totalEthReceivedInWei.valueOf(), 14500 * WEI_IN_ETHER, "Not starting with correct eth value");
@@ -123,12 +128,63 @@ contract('SnipCoin', function(accounts) {
 
 		it ("Transfer less than $50 worth of Ether, see that it doesn't work", function()
 		{
+			var account_two = accounts[1];
+			var snip = crowdsale;
+			snip.setEthToUsdExchangeRate(285);
+			snip.addAddressToCappedAddresses(account_two);
 
+			return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
+		      assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not starting with correct eth value");
+		      return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		    	web3.eth.sendTransaction({
+		          from: account_two,
+		          to: snip.address,
+		          value: web3.toWei(0.02, 'ether'),
+		          gas: 130000
+		        }, function(err, res) {
+		            //if (!err) return reject(new Error('Cant be here'))
+		            if (!err) return;
+		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
+		        })
+		        return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		     	assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not with correct eth value after transfer")
+		     	return snip.totalUsdReceived();
+		     }).then(function(totalUsdReceived) {
+		     	assert.equal(totalUsdReceived.valueOf(), 4000570, "Not with correct usd value after transfer")
+	    });			
 		});
 
 		it ("Transfer more than $8000000 worth of Ether, see that it doesn't work", function()
 		{
+			var account_two = accounts[1];
+			var snip = crowdsale;
+			snip.setEthToUsdExchangeRate(28500000);
+			//snip.setEthToUsdExchangeRate(285);
+			snip.addAddressToCappedAddresses(account_two);
 
+			return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
+		      assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not starting with correct eth value");
+		      return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		    	web3.eth.sendTransaction({
+		          from: account_two,
+		          to: snip.address,
+		          value: web3.toWei(2, 'ether'),
+		          gas: 130000
+		        }, function(err, res) {
+		            //if (!err) return reject(new Error('Cant be here'))
+		            if (!err) return;
+		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
+		        })
+		        return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		     	assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not with correct eth value after transfer")
+		     	return snip.totalUsdReceived();
+		     }).then(function(totalUsdReceived) {
+		     	assert.equal(totalUsdReceived.valueOf(), 4000570, "Not with correct usd value after transfer")
+	    });	
 		});
 
 		it ("Test effective max cap, see that ends the sale", function()
