@@ -205,8 +205,6 @@ contract SnipCoin is StandardToken {
         }
     }
 
-    // TODO:: In ether retrieval test make sure you get the right number of tokens.
-
     function () payable
     {
         verifySaleNotOver();
