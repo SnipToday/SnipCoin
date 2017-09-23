@@ -100,15 +100,15 @@ contract SnipCoin is StandardToken {
     mapping (address => bool) uncappedBuyerList; // The list of buyers allowed to participate in the sale without a cap
     mapping (address => bool) cappedBuyerList;   // The list of buyers allowed to participate in the sale
 
-    uint public snipCoinPerEther = 300000; // This is the ratio of SnipCoin to Ether, could be updated by the owner
-    //bool public isSaleOpen = false; // This opens and closes upon external command
-    bool public isSaleOpen = true; // This opens and closes upon external command
+    uint public snipCoinToEtherExchangeRate = 300000; // This is the ratio of SnipCoin to Ether, could be updated by the owner
+    bool public isSaleOpen = false; // This opens and closes upon external command
     uint public ethToUsdExchangeRate = 285; // Number of USD in one Eth
-    address private contractOwner;
-    address private accountWithUpdatePermissions;
+    
+    address private contractOwner;  // Address of the contract owner
+    // Address of an additional account to manage the sale without risk to the tokens or eth. Change before the sale
+    address private accountWithUpdatePermissions = 0x686f152daD6490DF93B267E319f875A684Bd26e2;
 
-    // Multiplier for the decimals
-    uint private constant DECIMALS_MULTIPLIER = 10**uint(decimals);    
+    uint private constant DECIMALS_MULTIPLIER = 10**uint(decimals);    // Multiplier for the decimals
     uint private constant WEI_IN_ETHER = 1000 * 1000 * 1000 * 1000 * 1000 * 1000; // Number of wei in 1 eth
     uint public constant SALE_CAP_IN_USD = 8000000;  // The total sale cap in USD
     uint public constant MINIMUM_PURCHASE_IN_USD = 50;  // It is impossible to purchase tokens for more than $50 in the sale.
@@ -134,38 +134,39 @@ contract SnipCoin is StandardToken {
         return balances[addr];
     }
 
-    function setEthToUsdExchangeRate(uint newEthToUsdExchangeRate)
-    {
-        ethToUsdExchangeRate = newEthToUsdExchangeRate;
-    }
-
     function getWeiToUsdExchangeRate() returns(uint)
     {
-        return WEI_IN_ETHER / ethToUsdExchangeRate;
+        return WEI_IN_ETHER / ethToUsdExchangeRate; // Returns how much Wei one USD is worth
     }
 
-    function updateSnipCoinPerEtherRatio(uint newRatio)
+    function updateEthToUsdExchangeRate(uint newEthToUsdExchangeRate)
     {
-        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions));
-        snipCoinPerEther = newRatio;
+        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions)); // Verify ownership
+        ethToUsdExchangeRate = newEthToUsdExchangeRate; // Change exchange rate to new value, influences the counter of when the sale is over.
+    }
+
+    function updateSnipCoinToEtherExchangeRate(uint newSnipCoinToEtherExchangeRate)
+    {
+        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions)); // Verify ownership
+        snipCoinToEtherExchangeRate = newSnipCoinToEtherExchangeRate; // Change the exchange rate to new value, influences tokens received per purchase
     }
 
     function openOrCloseSale(bool saleCondition)
     {
-        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions));
-        isSaleOpen = saleCondition;
+        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions)); // Verify ownership
+        isSaleOpen = saleCondition; // Decide if the sale should be open or closed (default: closed)
     }
 
     function addAddressToCappedAddresses(address addr)
     {
-        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions));
-        cappedBuyerList[addr] = true;
+        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions)); // Verify ownership
+        cappedBuyerList[addr] = true; // Allow a certain address to purchase SnipCoin up to the cap (<4500)
     }
 
     function addAddressToUncappedAddresses(address addr)
     {
-        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions));
-        uncappedBuyerList[addr] = true;
+        require((msg.sender == contractOwner) || (msg.sender == accountWithUpdatePermissions)); // Verify ownership
+        uncappedBuyerList[addr] = true; // Allow a certain address to purchase SnipCoin above the cap (>=$4500)
     }
 
     function SnipCoin()
@@ -174,7 +175,7 @@ contract SnipCoin is StandardToken {
         initializeEthReceived();
         initializeUsdReceived();
 
-        contractOwner = msg.sender;
+        contractOwner = msg.sender; // The creator of the contract is its owner
         totalSupply = 10000000000 * DECIMALS_MULTIPLIER;      // In total, 10 billion tokens
         balances[msg.sender] = totalSupply;        // Initially give owner all of the tokens 
     }
@@ -211,9 +212,9 @@ contract SnipCoin is StandardToken {
         verifySaleNotOver();
         verifyBuyerCanMakePurchase();
 
-        saleWalletAddress.send(msg.value);
-        transferFrom(contractOwner, msg.sender, uint(snipCoinPerEther * msg.value / WEI_IN_ETHER));
-        totalEthReceivedInWei = totalEthReceivedInWei + msg.value;
-        totalUsdReceived = totalUsdReceived + msg.value / getWeiToUsdExchangeRate();
+        saleWalletAddress.transfer(msg.value); // Transfer ether to safe sale address
+        transferFrom(contractOwner, msg.sender, uint(snipCoinToEtherExchangeRate * msg.value / WEI_IN_ETHER)); // Send tokens to buyer according to ratio
+        totalEthReceivedInWei = totalEthReceivedInWei + msg.value; // total eth received counter
+        totalUsdReceived = totalUsdReceived + msg.value / getWeiToUsdExchangeRate(); // total usd received counter
     }
 }

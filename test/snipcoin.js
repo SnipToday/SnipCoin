@@ -49,7 +49,7 @@ contract('SnipCoin', function(accounts) {
 	it ("Check send tokens correctly to other account", function()
 	{
 		var snip = crowdsale;
-		snip.setEthToUsdExchangeRate(285);
+		snip.updateEthToUsdExchangeRate(285);
 
 	    // Get initial balances of first and second account.
 	    var account_one = accounts[0];
@@ -95,12 +95,11 @@ contract('SnipCoin', function(accounts) {
 		});
 		});
 
-		it ("Check ether receival with contract, transfer to third account", function()
+		it ("Verify failure of ether receival with contract, transfer to third account, when sale is closed", function()
 		{
-			// Check that 
 			var account_two = accounts[1];
 			var snip = crowdsale;
-			snip.setEthToUsdExchangeRate(285);
+			snip.updateEthToUsdExchangeRate(285);
 			snip.addAddressToCappedAddresses(account_two);
 
 	      	return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
@@ -113,37 +112,36 @@ contract('SnipCoin', function(accounts) {
 		          value: web3.toWei(2, 'ether'),
 		          gas: 130000
 		        }, function(err, res) {
-		            //if (!err) return reject(new Error('Cant be here'))
 		            if (!err) return;
 		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
 		        })
 		        return snip.totalEthReceivedInWei();
 		    }).then(function(totalEthReceivedInWei) {
-		     	assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not with correct eth value after transfer")
+		     	assert.equal(totalEthReceivedInWei.valueOf(), 14500 * WEI_IN_ETHER, "Not with correct eth value after transfer")
 		     	return snip.totalUsdReceived();
 		     }).then(function(totalUsdReceived) {
-		     	assert.equal(totalUsdReceived.valueOf(), 4000570, "Not with correct usd value after transfer")
+		     	assert.equal(totalUsdReceived.valueOf(), 4000000, "Not with correct usd value after transfer")
 	    });
 		});
 
-		it ("Transfer less than $50 worth of Ether, see that it doesn't work", function()
+		it ("Check ether receival with contract, transfer to third account, capped payment", function()
 		{
 			var account_two = accounts[1];
 			var snip = crowdsale;
-			snip.setEthToUsdExchangeRate(285);
+			snip.openOrCloseSale(true);
+			snip.updateEthToUsdExchangeRate(285);
 			snip.addAddressToCappedAddresses(account_two);
 
-			return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
-		      assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not starting with correct eth value");
+	      	return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
+		      assert.equal(totalEthReceivedInWei.valueOf(), 14500 * WEI_IN_ETHER, "Not starting with correct eth value");
 		      return snip.totalEthReceivedInWei();
 		    }).then(function(totalEthReceivedInWei) {
 		    	web3.eth.sendTransaction({
 		          from: account_two,
 		          to: snip.address,
-		          value: web3.toWei(0.02, 'ether'),
+		          value: web3.toWei(2, 'ether'),
 		          gas: 130000
 		        }, function(err, res) {
-		            //if (!err) return reject(new Error('Cant be here'))
 		            if (!err) return;
 		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
 		        })
@@ -152,19 +150,20 @@ contract('SnipCoin', function(accounts) {
 		     	assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not with correct eth value after transfer")
 		     	return snip.totalUsdReceived();
 		     }).then(function(totalUsdReceived) {
+		     	snip.openOrCloseSale(false);
 		     	assert.equal(totalUsdReceived.valueOf(), 4000570, "Not with correct usd value after transfer")
-	    });			
+	    });
 		});
 
-		it ("Transfer more than $8000000 worth of Ether, see that it doesn't work", function()
+		it ("Check ether receival with contract, transfer to third account, uncapped payment", function()
 		{
 			var account_two = accounts[1];
 			var snip = crowdsale;
-			snip.setEthToUsdExchangeRate(28500000);
-			//snip.setEthToUsdExchangeRate(285);
-			snip.addAddressToCappedAddresses(account_two);
+			snip.openOrCloseSale(true);
+			snip.updateEthToUsdExchangeRate(28500);
+			snip.addAddressToUncappedAddresses(account_two);
 
-			return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
+	      	return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
 		      assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not starting with correct eth value");
 		      return snip.totalEthReceivedInWei();
 		    }).then(function(totalEthReceivedInWei) {
@@ -174,26 +173,114 @@ contract('SnipCoin', function(accounts) {
 		          value: web3.toWei(2, 'ether'),
 		          gas: 130000
 		        }, function(err, res) {
-		            //if (!err) return reject(new Error('Cant be here'))
 		            if (!err) return;
 		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
 		        })
 		        return snip.totalEthReceivedInWei();
 		    }).then(function(totalEthReceivedInWei) {
-		     	assert.equal(totalEthReceivedInWei.valueOf(), 14502 * WEI_IN_ETHER, "Not with correct eth value after transfer")
+		     	assert.equal(totalEthReceivedInWei.valueOf(), 14504 * WEI_IN_ETHER, "Not with correct eth value after transfer")
 		     	return snip.totalUsdReceived();
 		     }).then(function(totalUsdReceived) {
-		     	assert.equal(totalUsdReceived.valueOf(), 4000570, "Not with correct usd value after transfer")
+		     	assert.equal(totalUsdReceived.valueOf(), 4057570, "Not with correct usd value after transfer")
+	    });
+		});
+
+		it ("Transfer less than $50 worth of Ether, see that it doesn't work", function()
+		{
+			var account_two = accounts[1];
+			var snip = crowdsale;
+			snip.updateEthToUsdExchangeRate(285);
+			snip.addAddressToCappedAddresses(account_two);
+
+			return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
+		      assert.equal(totalEthReceivedInWei.valueOf(), 14504 * WEI_IN_ETHER, "Not starting with correct eth value");
+		      return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		    	web3.eth.sendTransaction({
+		          from: account_two,
+		          to: snip.address,
+		          value: web3.toWei(0.02, 'ether'),
+		          gas: 130000
+		        }, function(err, res) {
+		            if (!err) return;
+		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
+		        })
+		        return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		     	assert.equal(totalEthReceivedInWei.valueOf(), 14504 * WEI_IN_ETHER, "Not with correct eth value after transfer")
+		     	return snip.totalUsdReceived();
+		     }).then(function(totalUsdReceived) {
+		     	assert.equal(totalUsdReceived.valueOf(), 4057570, "Not with correct usd value after transfer")
+	    });			
+		});
+
+		it ("Transfer more than $8000000 worth of Ether, see that it doesn't work", function()
+		{
+			var account_two = accounts[1];
+			var snip = crowdsale;
+			snip.updateEthToUsdExchangeRate(28500000);
+			snip.addAddressToCappedAddresses(account_two);
+
+			return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
+		      assert.equal(totalEthReceivedInWei.valueOf(), 14504 * WEI_IN_ETHER, "Not starting with correct eth value");
+		      return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		    	web3.eth.sendTransaction({
+		          from: account_two,
+		          to: snip.address,
+		          value: web3.toWei(2, 'ether'),
+		          gas: 130000
+		        }, function(err, res) {
+		            if (!err) return;
+		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
+		        })
+		        return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		     	assert.equal(totalEthReceivedInWei.valueOf(), 14504 * WEI_IN_ETHER, "Not with correct eth value after transfer")
+		     	return snip.totalUsdReceived();
+		     }).then(function(totalUsdReceived) {
+		     	assert.equal(totalUsdReceived.valueOf(), 4057570, "Not with correct usd value after transfer")
 	    });	
 		});
 
-		it ("Test effective max cap, see that ends the sale", function()
+		it ("Transfer from unregistered account, see that it doesn't work", function()
 		{
+			var account_three = accounts[2];
+			var snip = crowdsale;
+			snip.updateEthToUsdExchangeRate(28500);
 
+			return snip.totalEthReceivedInWei().then(function(totalEthReceivedInWei) {
+		      assert.equal(totalEthReceivedInWei.valueOf(), 14504 * WEI_IN_ETHER, "Not starting with correct eth value");
+		      return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		    	web3.eth.sendTransaction({
+		          from: account_three,
+		          to: snip.address,
+		          value: web3.toWei(2, 'ether'),
+		          gas: 130000
+		        }, function(err, res) {
+		            if (!err) return;
+		            assert.equal(err.message, 'VM Exception while processing transaction: invalid opcode')
+		        })
+		        return snip.totalEthReceivedInWei();
+		    }).then(function(totalEthReceivedInWei) {
+		     	assert.equal(totalEthReceivedInWei.valueOf(), 14504 * WEI_IN_ETHER, "Not with correct eth value after transfer")
+		     	return snip.totalUsdReceived();
+		     }).then(function(totalUsdReceived) {
+		     	assert.equal(totalUsdReceived.valueOf(), 4057570, "Not with correct usd value after transfer")
+	    });	
 		});
 
 		it ("Test update of snp/eth ratio", function()
 		{
-
+			var snip = crowdsale;
+			snip.updateSnipCoinToEtherExchangeRate(100);
+			return snip.snipCoinToEtherExchangeRate().then(function(snipCoinToEtherExchangeRate) {
+				assert.equal(snipCoinToEtherExchangeRate.valueOf(), 100, "With incorrect SNIP/ETH ratio")
+				snip.updateSnipCoinToEtherExchangeRate(1000)
+				return snip.snipCoinToEtherExchangeRate();
+				}).then(function(snipCoinToEtherExchangeRate) {
+					assert.equal(snipCoinToEtherExchangeRate.valueOf(), 1000, "With incorrect SNIP/ETH ratio")
+		});
 		});
 });
