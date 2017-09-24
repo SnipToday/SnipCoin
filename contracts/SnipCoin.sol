@@ -50,7 +50,7 @@ contract StandardToken is Token {
             balances[_to] += _value;
             Transfer(msg.sender, _to, _value);
             return true;
-        } else { return false; }
+        } else { throw; }
     }
 
     function transferFrom(address _from, address _to, uint _value) public returns (bool success) {
@@ -62,7 +62,7 @@ contract StandardToken is Token {
             balances[_to] += _value;
             Transfer(_from, _to, _value);
             return true;
-        } else { return false; }
+        } else { throw; }
     }
 
     function balanceOf(address _owner) public constant returns (uint balance) {
@@ -70,6 +70,12 @@ contract StandardToken is Token {
     }
 
     function approve(address _spender, uint _value) public returns (bool success) {
+        // To change the approve amount you first have to reduce the addresses`
+        //  allowance to zero by calling `approve(_spender, 0)` if it is not
+        //  already 0 to mitigate the race condition described here:
+        //  https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+        require((_value == 0) || (allowed[msg.sender][_spender] == 0));
+
         allowed[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;
@@ -95,8 +101,8 @@ contract SnipCoin is StandardToken {
     string public version = "1.0";                    // Code version
     address public saleWalletAddress;                 // The wallet address where the Ether from the sale will be stored
 
-    mapping (address => bool) uncappedBuyerList;      // The list of buyers allowed to participate in the sale without a cap
-    mapping (address => uint) cappedBuyerList;        // The list of buyers allowed to participate in the sale, with their updated payment sum
+    mapping (address => bool) public uncappedBuyerList;      // The list of buyers allowed to participate in the sale without a cap
+    mapping (address => uint) public cappedBuyerList;        // The list of buyers allowed to participate in the sale, with their updated payment sum
 
     uint public snipCoinToEtherExchangeRate = 300000; // This is the ratio of SnipCoin to Ether, could be updated by the owner
     bool public isSaleOpen = false;                   // This opens and closes upon external command
