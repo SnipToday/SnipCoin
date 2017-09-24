@@ -96,7 +96,7 @@ contract SnipCoin is StandardToken {
     address public saleWalletAddress;                 // The wallet address where the Ether from the sale will be stored
 
     mapping (address => bool) uncappedBuyerList;      // The list of buyers allowed to participate in the sale without a cap
-    mapping (address => bool) cappedBuyerList;        // The list of buyers allowed to participate in the sale
+    mapping (address => uint) cappedBuyerList;        // The list of buyers allowed to participate in the sale, with their updated payment sum
 
     uint public snipCoinToEtherExchangeRate = 300000; // This is the ratio of SnipCoin to Ether, could be updated by the owner
     bool public isSaleOpen = false;                   // This opens and closes upon external command
@@ -125,20 +125,18 @@ contract SnipCoin is StandardToken {
     }
 
     modifier verifyBuyerCanMakePurchase() {
-        uint purchaseValueInUSD = uint(msg.value / getWeiToUsdExchangeRate()); // The USD worth of tokens sold
+        uint currentPurchaseValueInUSD = uint(msg.value / getWeiToUsdExchangeRate()); // The USD worth of tokens sold
+        uint totalPurchaseIncludingCurrentPayment = currentPurchaseValueInUSD +  cappedBuyerList[msg.sender]; // The USD worth of all tokens this buyer bought
 
-        require(purchaseValueInUSD > MINIMUM_PURCHASE_IN_USD); // Minimum transfer is of $50
+        require(currentPurchaseValueInUSD > MINIMUM_PURCHASE_IN_USD); // Minimum transfer is of $50
 
         uint EFFECTIVE_MAX_CAP = SALE_CAP_IN_USD + 1000;  // This allows for the end of the sale by passing $8M and reaching the cap
-        require(EFFECTIVE_MAX_CAP - totalUsdReceived > purchaseValueInUSD); // Make sure that there is enough usd left to buy.
+        require(EFFECTIVE_MAX_CAP - totalUsdReceived > currentPurchaseValueInUSD); // Make sure that there is enough usd left to buy.
 
-        if (purchaseValueInUSD >= USD_PURCHASE_AMOUNT_REQUIRING_ID) // Check if buyer is on uncapped white list
+        if (!uncappedBuyerList[msg.sender]) // If buyer is on uncapped white list then no worries, else need to make sure that they're okay
         {
-            require(uncappedBuyerList[msg.sender]);
-        }
-        if (purchaseValueInUSD < USD_PURCHASE_AMOUNT_REQUIRING_ID) // Check if buyer is on capped white list
-        {
-            require(cappedBuyerList[msg.sender] || uncappedBuyerList[msg.sender]);
+            require(cappedBuyerList[msg.sender] > 0); // Check that the sender has been initialized.
+            require(totalPurchaseIncludingCurrentPayment < USD_PURCHASE_AMOUNT_REQUIRING_ID); // Check that they're not buying too much
         }
         _;
     }
@@ -166,10 +164,6 @@ contract SnipCoin is StandardToken {
         totalUsdReceived = 4000000; // USD received before public sale. Verify this figure before the sale starts.
     }
 
-    function getBalance(address addr) public constant returns(uint) {
-        return balances[addr];
-    }
-
     function getWeiToUsdExchangeRate() public constant returns(uint) {
         return 1 ether / ethToUsdExchangeRate; // Returns how much Wei one USD is worth
     }
@@ -193,7 +187,7 @@ contract SnipCoin is StandardToken {
     }
 
     function addAddressToCappedAddresses(address addr) public onlyPermissioned {
-        cappedBuyerList[addr] = true; // Allow a certain address to purchase SnipCoin up to the cap (<4500)
+        cappedBuyerList[addr] = 1; // Allow a certain address to purchase SnipCoin up to the cap (<4500)
     }
 
     function addAddressToUncappedAddresses(address addr) public onlyPermissioned {
@@ -217,8 +211,13 @@ contract SnipCoin is StandardToken {
         Transfer(contractOwner, msg.sender, tokens);
 
         totalEthReceivedInWei = totalEthReceivedInWei + msg.value; // total eth received counter
-        totalUsdReceived = totalUsdReceived + msg.value / getWeiToUsdExchangeRate(); // total usd received counter
+        uint usdReceivedInCurrentTransaction = uint(msg.value / getWeiToUsdExchangeRate());
+        totalUsdReceived = totalUsdReceived + usdReceivedInCurrentTransaction; // total usd received counter
 
         saleWalletAddress.transfer(msg.value); // Transfer ether to safe sale address
+        if (cappedBuyerList[msg.sender] > 0)
+        {
+            cappedBuyerList[msg.sender] = cappedBuyerList[msg.sender] + usdReceivedInCurrentTransaction;
+        }
     }
 }

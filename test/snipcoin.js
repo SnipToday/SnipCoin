@@ -24,7 +24,7 @@ contract('SnipCoin', function(accounts) {
 	});
 	it ("Check initial balance", function()
 	{
-      	return crowdsale.getBalance.call(accounts[0]).then(function(balance) {
+      	return crowdsale.balanceOf.call(accounts[0]).then(function(balance) {
       	assert.equal(balance.valueOf(), 10000000000 * 1000000000000000000, "didn't get right initial balance");
 	});
 	});
@@ -62,17 +62,17 @@ contract('SnipCoin', function(accounts) {
 
 	    var amount = 10;
 
-      	return snip.getBalance.call(account_one).then(function(balance) {
+      	return snip.balanceOf.call(account_one).then(function(balance) {
 	      account_one_starting_balance = balance.toNumber();
-	      return snip.getBalance.call(account_two);
+	      return snip.balanceOf.call(account_two);
 	    }).then(function(balance) {
 	      account_two_starting_balance = balance.toNumber();
 	      return snip.transfer(account_two, amount, {from: account_one});
 	    }).then(function() {
-	      return snip.getBalance.call(account_one);
+	      return snip.balanceOf.call(account_one);
 	    }).then(function(balance) {
 	      account_one_ending_balance = balance.toNumber();
-	      return snip.getBalance.call(account_two);
+	      return snip.balanceOf.call(account_two);
 	    }).then(function(balance) {
 	      account_two_ending_balance = balance.toNumber();
 
