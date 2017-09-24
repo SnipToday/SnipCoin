@@ -190,8 +190,20 @@ contract SnipCoin is StandardToken {
         cappedBuyerList[addr] = 1; // Allow a certain address to purchase SnipCoin up to the cap (<4500)
     }
 
+    function addMultipleAddressesToCappedAddresses(address[] addrList) public onlyPermissioned {
+        for (uint i = 0; i < addrList.length; i++) {
+            addAddressToCappedAddresses(addrList[i]); // Allow a certain address to purchase SnipCoin up to the cap (<4500)
+        }
+    }
+
     function addAddressToUncappedAddresses(address addr) public onlyPermissioned {
         uncappedBuyerList[addr] = true; // Allow a certain address to purchase SnipCoin above the cap (>=$4500)
+    }
+
+    function addMultipleAddressesToUncappedAddresses(address[] addrList) public onlyPermissioned {
+        for (uint i = 0; i < addrList.length; i++) {
+            addAddressToUncappedAddresses(addrList[i]); // Allow a certain address to purchase SnipCoin up to the cap (<4500)
+        }
     }
 
     function transfer(address _to, uint _value) public returns (bool success) {
