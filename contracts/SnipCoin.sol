@@ -188,6 +188,7 @@ contract SnipCoin is StandardToken {
     }
 
     function allowTransfers() public onlyPermissioned {
+        require(!isSaleOpen);
         transferable = true;
     }
 
