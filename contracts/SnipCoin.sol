@@ -98,6 +98,7 @@ contract SnipCoin is StandardToken {
     uint8 public constant decimals = 18;              // Decimal points for token
     uint public totalEthReceivedInWei;                // The total amount of Ether received during the sale in WEI
     uint public totalUsdReceived;                     // The total amount of Ether received during the sale in USD terms
+    uint public totalUsdValueOfAllTokens;             // The total USD value of 100% of tokens
     string public version = "1.0";                    // Code version
     address public saleWalletAddress;                 // The wallet address where the Ether from the sale will be stored
 
@@ -114,6 +115,7 @@ contract SnipCoin is StandardToken {
     // Address of an additional account to manage the sale without risk to the tokens or eth. Change before the sale
     address public accountWithUpdatePermissions = 0x686f152daD6490DF93B267E319f875A684Bd26e2;
 
+    uint public constant PERCENTAGE_OF_TOKENS_SOLD_IN_SALE = 28;     // Percentage of all the tokens being sold in the current sale
     uint public constant DECIMALS_MULTIPLIER = 10**uint(decimals);   // Multiplier for the decimals
     uint public constant SALE_CAP_IN_USD = 8000000;                  // The total sale cap in USD
     uint public constant MINIMUM_PURCHASE_IN_USD = 50;               // It is impossible to purchase tokens for more than $50 in the sale.
@@ -168,6 +170,7 @@ contract SnipCoin is StandardToken {
 
     function initializeUsdReceived() internal {
         totalUsdReceived = 4000000; // USD received before public sale. Verify this figure before the sale starts.
+        totalUsdValueOfAllTokens = totalUsdReceived * 100 / PERCENTAGE_OF_TOKENS_SOLD_IN_SALE; // sold tokens are 28% of all tokens
     }
 
     function getWeiToUsdExchangeRate() public constant returns(uint) {
@@ -231,6 +234,7 @@ contract SnipCoin is StandardToken {
         totalEthReceivedInWei = totalEthReceivedInWei + msg.value; // total eth received counter
         uint usdReceivedInCurrentTransaction = uint(msg.value / getWeiToUsdExchangeRate());
         totalUsdReceived = totalUsdReceived + usdReceivedInCurrentTransaction; // total usd received counter
+        totalUsdValueOfAllTokens = totalUsdReceived * 100 / PERCENTAGE_OF_TOKENS_SOLD_IN_SALE; // sold tokens are 28% of all tokens
 
         if (cappedBuyerList[msg.sender] > 0)
         {
